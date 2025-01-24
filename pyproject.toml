@@ -1,5 +1,5 @@
 [project]
-name = "sbert-torch"
+name = "app"
 version = "0.1.0"
 description = ""
 authors = [
@@ -18,6 +18,8 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry.scripts]
+train = "scripts:run_train"
 
 [tool.ruff]
 line-length = 120
