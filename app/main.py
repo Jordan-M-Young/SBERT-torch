@@ -1,10 +1,11 @@
 """Main Training Loop."""
 
 from torch import optim
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, MSELoss
 from torch.utils.data import DataLoader, random_split
 from transformers import BertTokenizer
 
+from app.constants import BERTModels, ConcatStrategies, TrainingObjective
 from app.data import SentencePairDataset, load_data
 from app.sbert import SentenceBERT
 from app.training import evaluate, train
@@ -13,14 +14,29 @@ from app.utils import log_epoch
 
 def main():
     """Main Training Loop."""
-    BERT_MODEL = "prajjwal1/bert-tiny"
-    CONCAT_STRATEGY = "u,v,u-v"
+    # type of bert model you want to train.
+    BERT_MODEL = BERTModels.TINY_BERT
+
+    # model name and layer size of bert model
+    MODEL_NAME, _LAYER_SIZE = BERT_MODEL.value
+
+    # training objective. classification or regression.
+    OBJECTIVE = TrainingObjective.CLASSIFICATION
+
+    # concatentation strategy. if training objective is regression dont worry about this
+    CONCAT_STRATEGY = ConcatStrategies.UVUsubV
+
+    # jsonl file containing training data.
     TRAINING_FILE = "./data/snli_1.0/snli_1.0_dev.jsonl"
+
+    # training hyperparams
     TEST_FRACTION = 0.2
     BATCH_SIZE = 32
     EPOCHS = 30
+    LEARNING_RATE = 0.0001
+
     # load tokenizer
-    tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
+    tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
 
     # load dataset
     pairs, labels = load_data(TRAINING_FILE)
@@ -30,7 +46,7 @@ def main():
     labels = labels[:1000]
 
     sentence_pair_dataset = SentencePairDataset(
-        sentence_pairs=pairs, labels=labels, tokenizer=tokenizer
+        sentence_pairs=pairs, labels=labels, tokenizer=tokenizer, head=OBJECTIVE
     )
 
     # split dataset
@@ -46,13 +62,19 @@ def main():
     test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
     # initialize model
-    model = SentenceBERT(bert_model=BERT_MODEL, concat_strat=CONCAT_STRATEGY)
+    model = SentenceBERT(
+        bert_model=BERT_MODEL,
+        concat_strat=CONCAT_STRATEGY,
+        head=OBJECTIVE,
+    )
 
     # initialize loss function
-    loss_func = CrossEntropyLoss()
-
+    if OBJECTIVE == TrainingObjective.CLASSIFICATION:
+        loss_func = CrossEntropyLoss()
+    else:
+        loss_func = MSELoss()
     # initialize optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # training loop
     for epoch in range(EPOCHS):

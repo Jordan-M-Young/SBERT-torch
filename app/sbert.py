@@ -3,7 +3,7 @@
 import torch
 from transformers import BertModel
 
-from app.constants import TrainingObjective
+from app.constants import BERTModels, ConcatStrategies, TrainingObjective
 
 
 class SentenceBERT(torch.nn.Module):
@@ -11,17 +11,20 @@ class SentenceBERT(torch.nn.Module):
 
     def __init__(
         self,
-        bert_model: str,
-        concat_strat="u,v,u-v",
+        bert_model: BERTModels = BERTModels.TINY_BERT,
+        concat_strat: ConcatStrategies = ConcatStrategies.UVUsubV,
         head: TrainingObjective = TrainingObjective.CLASSIFICATION,
     ):
         """Initialize SBERT Class."""
         super(SentenceBERT, self).__init__()
 
-        self.bert = BertModel.from_pretrained(bert_model)
-        self.fc_classifier = torch.nn.Linear(256, 3)
-        self.fc_regress = torch.nn.Linear(128, 1)
+        self.model_name = bert_model.value[0]
+        self.layer_size = bert_model.value[1]
+
+        self.bert = BertModel.from_pretrained(self.model_name)
+        self.fc_classifier = torch.nn.Linear(self.layer_size * 2, 3)
         self.softmax = torch.nn.Softmax(dim=1)
+        self.cossim = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
         self.strat = concat_strat
         self.head = head
 
@@ -46,13 +49,11 @@ class SentenceBERT(torch.nn.Module):
 
         if self.head == TrainingObjective.CLASSIFICATION:
             output = self.run_concat(left, right)
-            output = self.fc1(output)
+            output = self.fc_classifier(output)
             output = self.softmax(output)
 
         else:
-            # todo add cosine similarity and regression head
-            output = self.fc
-
+            output = self.cossim(left, right)
         return output
 
     def run_concat(
@@ -60,7 +61,7 @@ class SentenceBERT(torch.nn.Module):
     ) -> torch.Tensor:
         """Run concatenation operation based on concatenation strategy."""
         concat = torch.cat((left_input, right_input), dim=1)
-        if self.strat == "u,v,u-v":
+        if self.strat == ConcatStrategies.UVUsubV:
             return concat
 
     def concise_mean_pooling(self, model_output, attention_mask):

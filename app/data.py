@@ -6,17 +6,26 @@ from typing import Tuple
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
 
-from app.constants import LABEL_ENCODINGS
+from app.constants import (
+    CLASSIFICATION_LABEL_ENCODINGS,
+    REGRESSION_LABEL_ENCODINGS,
+    TrainingObjective,
+)
 
 
 class SentencePairDataset(Dataset):
     """Custom Dataset for encoding sentence pairs."""
 
     def __init__(
-        self, sentence_pairs: list[tuple], labels: list[str], tokenizer: BertTokenizer
+        self,
+        sentence_pairs: list[tuple],
+        labels: list[str],
+        tokenizer: BertTokenizer,
+        head: TrainingObjective,
     ):
         """Initialize SentencePairDataset."""
         self.sentence_pairs = sentence_pairs
+        self.head = head
         self.labels = self.encode_labels(labels)
         self.tokenizer = tokenizer
 
@@ -49,8 +58,13 @@ class SentencePairDataset(Dataset):
     def encode_labels(self, labels: list) -> list[list]:
         """Encode dataset labels."""
         encoded_labels = []
+        if self.head == TrainingObjective.CLASSIFICATION:
+            encoding_dict = CLASSIFICATION_LABEL_ENCODINGS
+        else:
+            encoding_dict = REGRESSION_LABEL_ENCODINGS
+
         for label in labels:
-            encoded_labels.append(LABEL_ENCODINGS[label])
+            encoded_labels.append(encoding_dict[label])
         return encoded_labels
 
 
@@ -67,7 +81,7 @@ def load_data(filename) -> Tuple[list[tuple], list[str]]:
         sentence_2 = res["sentence2"]
         label = res["gold_label"]
 
-        if label in LABEL_ENCODINGS:
+        if label in CLASSIFICATION_LABEL_ENCODINGS:
             pairs.append((sentence_1, sentence_2))
             labels.append(label)
 
