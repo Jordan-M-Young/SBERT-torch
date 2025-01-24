@@ -22,7 +22,7 @@ build-backend = "poetry.core.masonry.api"
 train = "scripts:run_train"
 
 [tool.ruff]
-line-length = 120
+line-length = 90
 
 [tool.ruff.lint]
 select = [

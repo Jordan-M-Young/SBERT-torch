@@ -1,12 +1,20 @@
 """Training and Evaluation functions."""
+
 import numpy as np
 from torch import tensor
+from torch.nn import CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch.nn import CrossEntropyLoss
+
 from app.sbert import SentenceBERT
 
-def train(data: DataLoader, model: SentenceBERT, loss_func: CrossEntropyLoss, optimizer: Optimizer) -> float:
+
+def train(
+    data: DataLoader,
+    model: SentenceBERT,
+    loss_func: CrossEntropyLoss,
+    optimizer: Optimizer,
+) -> float:
     """Training loop."""
     model.train()
     batch_loss = 0.0
@@ -20,11 +28,11 @@ def train(data: DataLoader, model: SentenceBERT, loss_func: CrossEntropyLoss, op
         loss_val = loss.detach().item()
         batch_loss += loss_val
         loss.backward()
-        
+
         optimizer.step()
 
-    
     return batch_loss
+
 
 def evaluate(data: DataLoader, model: SentenceBERT, loss_func: CrossEntropyLoss) -> float:
     """Evaluation Loop."""
@@ -39,5 +47,5 @@ def evaluate(data: DataLoader, model: SentenceBERT, loss_func: CrossEntropyLoss)
         loss = loss_func(output, labels)
         loss_val = loss.detach().item()
         batch_loss += loss_val
-    
+
     return batch_loss
