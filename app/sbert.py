@@ -12,7 +12,7 @@ class SentenceBERT(torch.nn.Module):
     def __init__(
         self,
         bert_model: BERTModels = BERTModels.TINY_BERT,
-        concat_strat: ConcatStrategies = ConcatStrategies.UVUsubV,
+        concat_strat: ConcatStrategies = ConcatStrategies.UV,
         head: TrainingObjective = TrainingObjective.CLASSIFICATION,
     ):
         """Initialize SBERT Class."""
@@ -20,12 +20,12 @@ class SentenceBERT(torch.nn.Module):
 
         self.model_name = bert_model.value[0]
         self.layer_size = bert_model.value[1]
-
+        self.strat = concat_strat
         self.bert = BertModel.from_pretrained(self.model_name)
-        self.fc_classifier = torch.nn.Linear(self.layer_size * 2, 3)
+        self.size_multiple = self.get_size_multiplier()
+        self.fc_classifier = torch.nn.Linear(self.layer_size * self.size_multiple, 3)
         self.softmax = torch.nn.Softmax(dim=1)
         self.cossim = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
-        self.strat = concat_strat
         self.head = head
 
     def forward(self, left, right):
@@ -61,7 +61,11 @@ class SentenceBERT(torch.nn.Module):
     ) -> torch.Tensor:
         """Run concatenation operation based on concatenation strategy."""
         concat = torch.cat((left_input, right_input), dim=1)
+        if self.strat == ConcatStrategies.UV:
+            return concat
         if self.strat == ConcatStrategies.UVUsubV:
+            sub = left_input - right_input
+            concat = torch.cat((concat, sub))
             return concat
 
     def concise_mean_pooling(self, model_output, attention_mask):
@@ -75,3 +79,15 @@ class SentenceBERT(torch.nn.Module):
         return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(
             input_mask_expanded.sum(1), min=1e-9
         )
+
+    def get_size_multiplier(self) -> int:
+        """Returns an integer which describes how many times the size of
+        our input will be multipled based on a concat strategy.
+        e.g. the bert model has a 128 size output, and were concatenating
+         the left, right, and left-right vectors. Thus our multiple is 3.
+        """
+        if self.strat == ConcatStrategies.UV:
+            return 2
+
+        if self.strat == ConcatStrategies.UVUsubV:
+            return 3
