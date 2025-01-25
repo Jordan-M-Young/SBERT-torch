@@ -70,8 +70,10 @@ def main():
 
     # initialize loss function
     if OBJECTIVE == TrainingObjective.CLASSIFICATION:
+        # if training objective is classification use crossentropy
         loss_func = CrossEntropyLoss()
     else:
+        # if training objective is regresssion use mean square error
         loss_func = MSELoss()
     # initialize optimizer
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
