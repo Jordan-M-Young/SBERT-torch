@@ -24,7 +24,7 @@ def main():
     OBJECTIVE = TrainingObjective.CLASSIFICATION
 
     # concatentation strategy. if training objective is regression dont worry about this
-    CONCAT_STRATEGY = ConcatStrategies.UVUsubV
+    CONCAT_STRATEGY = ConcatStrategies.UV
 
     # jsonl file containing training data.
     TRAINING_FILE = "./data/snli_1.0/snli_1.0_dev.jsonl"
