@@ -1,7 +1,6 @@
 """Repo scripts."""
 
 import os
-import zipfile
 
 import requests
 
@@ -15,22 +14,18 @@ def run_train():
 
 def pull_data() -> None:
     """Script to pull datasets for training."""
-    SNLI_URL = ""
-    MLNI_URL = ""
+    SNLI_URL = "https://nlp.stanford.edu/projects/snli/snli_1.0.zip"
+    MLNI_URL = "https://cims.nyu.edu/~sbowman/multinli/multinli_1.0.zip"
 
     if not os.path.isdir("./data"):
         os.mkdir("./data")
 
-    resp = requests.get(SNLI_URL)
-    with open("./data/snli_1.0.zip", "wb") as zfile:
-        zfile.write(resp.content)
+    resp = requests.get(SNLI_URL, stream=True)
+    with open("./data/snli_1.0.zip", "wb") as fd:
+        for chunk in resp.iter_content(chunk_size=128):
+            fd.write(chunk)
 
-    resp = requests.get(MLNI_URL)
-    with open("./data/multinli_1.0.zip", "wb") as zfile:
-        zfile.write(resp.content)
-
-    with zipfile.ZipFile("./data/multinli_1.0.zip", "r") as zip_ref:
-        zip_ref.extractall("./data/snli_1.0_test")
-
-    with zipfile.ZipFile("./data/snli_1.0.zip", "r") as zip_ref:
-        zip_ref.extractall("./data/multinli_1.0_test")
+    resp = requests.get(MLNI_URL, stream=True)
+    with open("./data/mnli_1.0.zip", "wb") as fd:
+        for chunk in resp.iter_content(chunk_size=128):
+            fd.write(chunk)
